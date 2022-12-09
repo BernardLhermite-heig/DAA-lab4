@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">DAA-lab4</string>
+
+    <string name="menu_refresh">Refresh</string>
 </resources>
