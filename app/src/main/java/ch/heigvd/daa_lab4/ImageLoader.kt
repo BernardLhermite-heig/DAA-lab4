@@ -18,6 +18,10 @@ class ImageLoader(
         if (!cacheDir.exists() || !cacheDir.isDirectory) {
             throw IllegalArgumentException("cacheDir must be a directory")
         }
+
+        if (!cacheDir.canWrite()) {
+            throw IllegalArgumentException("cacheDir must be writable")
+        }
     }
 
     fun load(imageURL: URL, showImage: (Bitmap) -> Unit): Job {
