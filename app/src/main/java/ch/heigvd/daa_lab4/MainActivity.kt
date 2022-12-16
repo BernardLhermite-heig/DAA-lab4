@@ -15,7 +15,10 @@ class MainActivity : AppCompatActivity() {
         const val IMAGE_URL = "https://daa.iict.ch/images/%d.jpg"
         const val UPPER_BOUND = 10_000
         val CACHE_DURATION: Duration = Duration.ofMinutes(5)
+        val CACHE_CLEAN_INTERVAL: Duration = Duration.ofMinutes(1)
     }
+
+    private val cacheManager by lazy { CacheManager(cacheDir, CACHE_CLEAN_INTERVAL) }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -27,6 +30,8 @@ class MainActivity : AppCompatActivity() {
         val recyclerView = findViewById<RecyclerView>(R.id.image_list)
         recyclerView.adapter = ImageViewAdapter(images, imageLoader)
         recyclerView.layoutManager = GridLayoutManager(this, NB_COLUMNS)
+
+        cacheManager.register(this)
     }
 
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {

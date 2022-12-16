@@ -32,7 +32,8 @@ class ImageLoader(
                 readImageFile(image)
             } else {
                 downloadImage(imageURL)
-            }
+            } ?: return@launch
+
             val bitmap = decodeImage(bytes) ?: return@launch
             cacheImage(imageURL, bitmap)
             displayImage(showImage, bitmap)
