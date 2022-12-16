@@ -44,7 +44,7 @@ class ImageLoader(
         try {
             url.readBytes()
         } catch (e: IOException) {
-            Log.w("downloadImage", "Exception while downloading image", e)
+            Log.w("downloadImage", "Exception while downloading image ${e.message}", e)
             null
         }
     }
@@ -53,16 +53,17 @@ class ImageLoader(
         try {
             file.readBytes()
         } catch (e: IOException) {
-            Log.w("readImageFile", "Exception while reading image file", e)
+            Log.w("readImageFile", "Exception while reading image file ${e.message}", e)
             null
         }
     }
 
     private suspend fun decodeImage(bytes: ByteArray?): Bitmap? = withContext(Dispatchers.Default) {
         try {
+            Log.w("decodeImage", "Decoding image")
             BitmapFactory.decodeByteArray(bytes, 0, bytes?.size ?: 0)
         } catch (e: IOException) {
-            Log.w("decodeImage", "Exception while decoding image", e)
+            Log.w("decodeImage", "Exception while decoding image ${e.message}", e)
             null
         }
     }
