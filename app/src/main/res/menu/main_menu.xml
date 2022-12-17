@@ -2,7 +2,7 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto">
     <item
-        android:id="@+id/main_menu_action1"
+        android:id="@+id/main_menu_cleanup_button"
         android:title="@string/menu_refresh"
         android:icon="@drawable/refresh"
         app:showAsAction="ifRoom" />

@@ -11,20 +11,10 @@ import java.time.Duration
 
 class ImageLoader(
     private val lifecycleScope: CoroutineScope,
-    private val cacheDir: File,
+    private val cacheManager: CacheManager,
     private val maxCacheDuration: Duration
 ) {
-    init {
-        if (!cacheDir.exists() || !cacheDir.isDirectory) {
-            throw IllegalArgumentException("cacheDir must be a directory")
-        }
-
-        if (!cacheDir.canWrite()) {
-            throw IllegalArgumentException("cacheDir must be writable")
-        }
-    }
-
-    fun load(imageURL: URL, showImage: (Bitmap) -> Unit): Job {
+    fun load(imageURL: URL, onComplete: (Bitmap) -> Unit): Job {
         return lifecycleScope.launch {
             val image = getCachedImage(imageURL)
 
@@ -36,7 +26,10 @@ class ImageLoader(
 
             val bitmap = decodeImage(bytes) ?: return@launch
             cacheImage(imageURL, bitmap)
-            displayImage(showImage, bitmap)
+
+            withContext(Dispatchers.Main) {
+                onComplete(bitmap)
+            }
         }
     }
 
@@ -44,7 +37,7 @@ class ImageLoader(
         try {
             url.readBytes()
         } catch (e: IOException) {
-            Log.w("downloadImage", "Exception while downloading image ${e.message}", e)
+            Log.e("downloadImage", "Exception while downloading image ${e.message}", e)
             null
         }
     }
@@ -53,40 +46,31 @@ class ImageLoader(
         try {
             file.readBytes()
         } catch (e: IOException) {
-            Log.w("readImageFile", "Exception while reading image file ${e.message}", e)
+            Log.e("readImageFile", "Exception while reading image file ${e.message}", e)
             null
         }
     }
 
     private suspend fun decodeImage(bytes: ByteArray?): Bitmap? = withContext(Dispatchers.Default) {
         try {
-            Log.w("decodeImage", "Decoding image")
             BitmapFactory.decodeByteArray(bytes, 0, bytes?.size ?: 0)
         } catch (e: IOException) {
-            Log.w("decodeImage", "Exception while decoding image ${e.message}", e)
+            Log.e("decodeImage", "Exception while decoding image ${e.message}", e)
             null
         }
     }
 
     private suspend fun cacheImage(url: URL, bitmap: Bitmap) = withContext(Dispatchers.IO) {
-        val file = File(cacheDir, url.hashCode().toString())
-        file.outputStream().use { bitmap.compress(Bitmap.CompressFormat.JPEG, 100, it) }
+        cacheManager.put(url.hashCode().toString(), bitmap)
     }
 
     private suspend fun getCachedImage(url: URL): File? = withContext(Dispatchers.IO) {
-        val file = File(cacheDir, url.hashCode().toString())
+        val file = cacheManager.get(url.hashCode().toString())
 
-        if (file.exists() && file.lastModified() + maxCacheDuration.toMillis() > System.currentTimeMillis()) {
+        if (file != null && file.lastModified() + maxCacheDuration.toMillis() > System.currentTimeMillis()) {
             file
         } else {
-            file.delete()
             null
         }
     }
-
-    private suspend fun displayImage(showImage: (Bitmap) -> Unit, bmp: Bitmap): Unit =
-        withContext(Dispatchers.Main) {
-            showImage(bmp)
-            Log.i("displayImage", "Image displayed")
-        }
 }

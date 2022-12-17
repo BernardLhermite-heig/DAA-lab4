@@ -1,12 +1,14 @@
 package ch.heigvd.daa_lab4
 
 import android.content.Context
+import android.graphics.Bitmap
+import android.util.Log
 import androidx.work.*
 import java.io.File
 import java.time.Duration
 import java.util.concurrent.TimeUnit
 
-class CacheManager(private val directory: File, private val cleanInterval: Duration) {
+class CacheManager(private val directory: File) {
     companion object {
         private val MIN_INTERVAL = Duration.ofMinutes(15)
     }
@@ -21,15 +23,16 @@ class CacheManager(private val directory: File, private val cleanInterval: Durat
         if (!directory.canWrite()) {
             throw IllegalArgumentException("$directory must be writable")
         }
-
-        if (cleanInterval.isNegative || cleanInterval.isZero || cleanInterval < MIN_INTERVAL) {
-            throw IllegalArgumentException("cleanInterval must be greater than 15min")
-        }
     }
 
-    fun register(context: Context) {
+    fun registerPeriodicCleanup(cleanInterval: Duration, context: Context) {
         if (hasRegistered) {
-            throw IllegalStateException("CacheManager has already been registered")
+            Log.i(CacheManager::class.java.name, "Periodic cleanup already registered, skipping")
+            return
+        }
+
+        if (cleanInterval < MIN_INTERVAL) {
+            throw IllegalArgumentException("interval cannot be smaller than ${MIN_INTERVAL.toMinutes()} minutes")
         }
 
         val workManager = WorkManager.getInstance(context)
@@ -48,7 +51,7 @@ class CacheManager(private val directory: File, private val cleanInterval: Durat
         hasRegistered = true
     }
 
-    fun clean(context: Context) {
+    fun cleanup(context: Context) {
         val workManager = WorkManager.getInstance(context)
 
         val workRequest = OneTimeWorkRequestBuilder<DirectoryCleanerWorker>()
@@ -56,5 +59,15 @@ class CacheManager(private val directory: File, private val cleanInterval: Durat
             .build()
 
         workManager.enqueue(workRequest)
+    }
+
+    fun get(key: String): File? {
+        val file = File(directory, key)
+        return if (file.exists()) file else null
+    }
+
+    fun put(key: String, bitmap: Bitmap) {
+        val file = File(directory, key)
+        file.outputStream().use { bitmap.compress(Bitmap.CompressFormat.JPEG, 100, it) }
     }
 }
