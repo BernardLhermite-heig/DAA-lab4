@@ -16,16 +16,17 @@ class ImageLoader(
 ) {
     fun load(imageURL: URL, onComplete: (Bitmap) -> Unit): Job {
         return lifecycleScope.launch {
-            val image = getCachedImage(imageURL)
+            val image = getFromCache(imageURL)
 
-            val bytes = if (image != null) {
-                readImageFile(image)
+            val bitmap = if (image != null) {
+                val bytes = readImageFile(image) ?: return@launch
+                decodeImage(bytes)
             } else {
-                downloadImage(imageURL)
+                val bytes = downloadImage(imageURL) ?: return@launch
+                decodeImage(bytes)?.apply {
+                    putInCache(imageURL, this)
+                }
             } ?: return@launch
-
-            val bitmap = decodeImage(bytes) ?: return@launch
-            cacheImage(imageURL, bitmap)
 
             withContext(Dispatchers.Main) {
                 onComplete(bitmap)
@@ -51,20 +52,20 @@ class ImageLoader(
         }
     }
 
-    private suspend fun decodeImage(bytes: ByteArray?): Bitmap? = withContext(Dispatchers.Default) {
+    private suspend fun decodeImage(bytes: ByteArray): Bitmap? = withContext(Dispatchers.Default) {
         try {
-            BitmapFactory.decodeByteArray(bytes, 0, bytes?.size ?: 0)
+            BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
         } catch (e: IOException) {
             Log.e("decodeImage", "Exception while decoding image ${e.message}", e)
             null
         }
     }
 
-    private suspend fun cacheImage(url: URL, bitmap: Bitmap) = withContext(Dispatchers.IO) {
+    private suspend fun putInCache(url: URL, bitmap: Bitmap) = withContext(Dispatchers.IO) {
         cacheManager.put(url.hashCode().toString(), bitmap)
     }
 
-    private suspend fun getCachedImage(url: URL): File? = withContext(Dispatchers.IO) {
+    private suspend fun getFromCache(url: URL): File? = withContext(Dispatchers.IO) {
         val file = cacheManager.get(url.hashCode().toString())
 
         if (file != null && file.lastModified() + maxCacheDuration.toMillis() > System.currentTimeMillis()) {
