@@ -7,6 +7,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import kotlinx.coroutines.cancelChildren
 import java.net.URL
 import java.time.Duration
 
@@ -57,5 +58,10 @@ class MainActivity : AppCompatActivity() {
             }
             else -> super.onOptionsItemSelected(item)
         }
+    }
+
+    override fun onStop() {
+        super.onStop()
+        lifecycleScope.coroutineContext.cancelChildren()
     }
 }
