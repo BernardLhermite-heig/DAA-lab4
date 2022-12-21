@@ -10,8 +10,6 @@
 
 Le but de ce laboratoire est de développer une application android faisant office de galerie d'images. L'application devra permettre de scroller à travers une liste de 10'000 images, qui seront téléchargées en ligne. Le but de ce laboratoire est de se familiariser avec les tâches asynchrones (`coroutines` et `WorkManager`).
 
-<div style="page-break-after: always;"></div>
-
 ## 1. Détails d'implémentation
 
 ### 1.1. Layout
@@ -61,7 +59,6 @@ main_menu.xml:
 
 ### 1.2. ImageLoader
 
-Voici le code de la classe `ImageLoader`:
 ```kt
 typealias Callback = (Bitmap) -> Unit
 
@@ -127,13 +124,12 @@ class ImageLoader(
 }
 ```
 
-Chaque étape du processus est découpé dans une méthode suspensive s'exécutant avec le `Dispatcher` adapté. Pour notifier l'utilisateur de la fin du téléchargement, nous utilisons un système de callback.
+Chaque étape du processus est découpé dans une méthode suspensive respective s'exécutant dans le `Dispatcher` le plus adapté. Pour notifier l'appelant de la fin du téléchargement, nous utilisons un système de callback.
 
 Chaque instance de la classe est associée à une `CoroutineScope`.
 
 ### 1.3. CacheManager
 
-Voici le code de la classe `CacheManager`:
 ```kt
 class CacheManager(private val directory: File) {
     companion object {
@@ -207,11 +203,12 @@ class CacheManager(private val directory: File) {
 }
 ```
 
-C'est là que nous enregistrons les tâches de nettoyage périodiques et ponctuelles. Nous utilisons `WorkManager` pour cela. C'est aussi la que la gestion du cache est implémentée.
+Cette classe gère l'enregistrement des tâches de nettoyage périodiques et ponctuelles à l'aide de `WorkManager`. Elle permet également de lire et d'écrire des images dans le cache.
+
+Pour pouvoir différencier les tâches dans la console, nous leur avons ajouté un tag.
 
 ### 1.4. DirectoryCleanerWorker
 
-Voici le code de la classe `DirectoryCleanerWorker`:
 ```kt
 class DirectoryCleanerWorker(context: Context, params: WorkerParameters) :
     Worker(context, params) {
@@ -254,13 +251,12 @@ class DirectoryCleanerWorker(context: Context, params: WorkerParameters) :
     }
 }
 ```
-C'est la classe qui effectue le nettoyage du cache. Elle est appelée par `WorkManager` à intervalle régulier ou ponctuellement. Pour lui passer des données, en l'occurence le dossier à vider, nous avons utilisé des `InputData`.
+C'est la classe qui effectue le nettoyage du cache. Pour lui passer des données, en l'occurence le dossier à vider, nous avons utilisé un `InputData`.
 
-Nous avons créé une méthode statique `createInputData` pour créer les `InputData` à partir d'un `File` passé en paramètre.
+Nous avons créé une méthode statique `createInputData` pour créer les `InputData` à partir d'un `File` passé en paramètre et ainsi transférer le chemin du dossier à vider de la requête à la tâche.
 
 ### 1.5. ImageViewAdapter
 
-Voici le code de la classe `ImageViewAdapter`:
 ```kt
 class ImageViewAdapter(
     private val items: List<URL>,
@@ -291,9 +287,7 @@ class ImageViewAdapter(
     }
 
     inner class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
-        private val imageView by lazy { view.findViewById<ImageView>(R.id.image_view) }
-        private val progressBar by lazy { view.findViewById<ProgressBar>(R.id.progress_bar) }
-        private var job: Job? = null
+        // [...] récupération des vues
 
         fun bind(imageUrl: URL) {
             job = imageLoader.load(imageUrl, ::showImage)
@@ -306,6 +300,7 @@ class ImageViewAdapter(
             job?.cancel()
         }
 
+        // Callback appelé lorsque l'image est téléchargée
         private fun showImage(bitmap: Bitmap) {
             imageView.setImageBitmap(bitmap)
             imageView.visibility = View.VISIBLE
@@ -314,11 +309,12 @@ class ImageViewAdapter(
     }
 }
 ```
-Le fonctionnement du chargement des images est expliqué plus bas.
+Lorsqu'une vue est bindée à un `ViewHolder`, le processus de téléchargement est initié par ce dernier à l'aide de la méthode `load` de l'`ImageLoader`. Une fois le processus terminé, le `ViewHolder` est notifié à l'aide d'un callback.
+
+La méthode `unbind` est décrite plus bas.
 
 ### 1.6. MainActivity
 
-Voici le code de la classe `MainActivity`:
 ```kt
 class MainActivity : AppCompatActivity() {
     companion object {
@@ -370,13 +366,13 @@ class MainActivity : AppCompatActivity() {
     }
 }
 ```
-La classe `MainActivity` est la classe principale de l'application. Elle est responsable de la création de l'`ImageLoader` et de la `RecyclerView` qui affiche les images.
+Dans la méthode `onCreate`, les différents composants sont initialisés et la tâche périodique enregistrée.
+
+<div style="page-break-after: always;"></div>
 
 ## 2. Questions sur l'Adapteur et les coroutines
 
-### 2.1 
-
-**Veuillez expliquer comment votre solution s'assure qu'une éventuelle Couroutine associée à une vue (item) de la RecyclerView soit correctement stoppée lorsque l'utilisateur scrolle dans la galerie et que la vue est recyclée.**
+### 2.1 **Veuillez expliquer comment votre solution s'assure qu'une éventuelle Couroutine associée à une vue (item) de la RecyclerView soit correctement stoppée lorsque l'utilisateur scrolle dans la galerie et que la vue est recyclée.**
 
 Voici le code de l'`ImageViewAdapter`:
 ```kt
@@ -408,9 +404,9 @@ inner class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
 ```
 Dans la méthode unbind, on annule la coroutine associée à l'item de la RecyclerView. Ainsi, lorsque l'utilisateur scrolle dans la galerie et que la vue est recyclé, l'éventuelle coroutine associée est stoppée.
 
-### 2.2
+<div style="page-break-after: always;"></div>
 
-**Comment pouvons-nous nous assurer que toutes les Coroutines soient correctement stoppées lorsque l'utilisateur quitte l'Activité ? Veuillez expliquer la solution que vous avez mis en oeuvre, est-ce la plus adaptée ?**
+### 2.2 **Comment pouvons-nous nous assurer que toutes les Coroutines soient correctement stoppées lorsque l'utilisateur quitte l'Activité ? Veuillez expliquer la solution que vous avez mis en oeuvre, est-ce la plus adaptée ?**
 
 Dans la méthode `load` de `ImageLoader`, nous lançons toutes les coroutines dans le scope qui nous est passé à la construction de l'objet (le `LifecycleScope` de l'activité dans notre cas).
 
@@ -437,8 +433,7 @@ override fun onStop() {
 }
 ```
 
-### 2.3 
-**Est-ce que l'utilisation du Dispatchers.IO est le plus adapté pour des tâches de téléchargement ? Ne faudrait-il pas plutôt utiliser un autre Dispatcher, si oui lequel ? Veuillez illustrer votre réponse en effectuant quelques tests.**
+### 2.3 **Est-ce que l'utilisation du Dispatchers.IO est le plus adapté pour des tâches de téléchargement ? Ne faudrait-il pas plutôt utiliser un autre Dispatcher, si oui lequel ? Veuillez illustrer votre réponse en effectuant quelques tests.**
 
 Selon la documentation d'android, le `Dispatcher.IO` est le plus adapté pour les entrées/sorties sur le réseau et de lectures/écritures sur les disques. 
 
@@ -450,9 +445,7 @@ On constate que le `Dispatcher.IO` est un peu plus rapide que le `Dispatcher.Def
 
 ## 3. Questions sur le nettoyage automatique du cache
 
-### 3.1
-
-**Lors du lancement de la tâche ponctuelle, comment pouvons nous faire en sorte que la galerie soit raffraîchie ?**
+### 3.1 **Lors du lancement de la tâche ponctuelle, comment pouvons nous faire en sorte que la galerie soit raffraîchie ?**
 
 Nous avons créé une méthode `reload` dans l'adapter qui permet de rafraîchir la galerie. Cette méthode est appelée dans l'activité lorsque l'utilisateur clique sur le bouton de nettoyage du cache.
 ```kt
@@ -476,9 +469,7 @@ override fun onOptionsItemSelected(item: MenuItem): Boolean {
 ```
 
 
-### 3.2 
-
-**Comment pouvons-nous nous assurer que la tâche périodique ne soit pas enregistrée plusieurs fois ? Vous expliquerez comment la librairie WorkManager procède pour enregistrer les différentes tâches périodiques et en particulier comment celles-ci sont ré-enregistrées lorsque le téléphone est redémarré.**
+### 3.2 **Comment pouvons-nous nous assurer que la tâche périodique ne soit pas enregistrée plusieurs fois ? Vous expliquerez comment la librairie WorkManager procède pour enregistrer les différentes tâches périodiques et en particulier comment celles-ci sont ré-enregistrées lorsque le téléphone est redémarré.**
 
 La librairie WorkManager permet d'enregister des tâches périodiques uniques permettant de spécifier le comportement à adopter si une tâche périodique avec le même nom existe déjà. Dans notre cas, nous utilisons `ExistingPeriodicWorkPolicy.KEEP`. Cela signifie que si une tâche périodique avec le même nom existe déjà, elle sera conservée et la nouvelle tâche périodique ne sera pas enregistrée.
 
