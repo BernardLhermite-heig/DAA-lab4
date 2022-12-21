@@ -18,8 +18,8 @@ import java.util.concurrent.TimeUnit
 class CacheManager(private val directory: File) {
     companion object {
         private val MIN_INTERVAL = Duration.ofMinutes(15)
-        private const val PERIODIC_TAG = "PeriodicCleanup"
-        private const val ONE_TIME_TAG = "OneTimeCleanup"
+        private const val PERIODIC_TAG = "PeriodicCleanup_"
+        private const val ONE_TIME_TAG = "OneTimeCleanup_"
     }
 
     init {
