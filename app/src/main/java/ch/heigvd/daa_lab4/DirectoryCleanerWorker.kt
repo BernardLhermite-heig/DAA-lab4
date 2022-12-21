@@ -6,11 +6,19 @@ import androidx.work.Worker
 import androidx.work.WorkerParameters
 import java.io.File
 
+/**
+ * Worker permettant de nettoyer un dossier donné.
+ *
+ * @author Marengo Stéphane, Friedli Jonathan, Silvestri Géraud
+ */
 class DirectoryCleanerWorker(context: Context, params: WorkerParameters) :
     Worker(context, params) {
     companion object {
         const val DIRECTORY_KEY = "DIRECTORY_KEY"
 
+        /**
+         * Crée un objet Data contenant le chemin du dossier à nettoyer.
+         */
         fun createInputData(directory: File): Data {
             if (!directory.exists() || !directory.isDirectory) {
                 throw IllegalArgumentException("$directory is not a directory")

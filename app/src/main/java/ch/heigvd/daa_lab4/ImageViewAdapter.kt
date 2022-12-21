@@ -10,11 +10,19 @@ import androidx.recyclerview.widget.RecyclerView
 import kotlinx.coroutines.Job
 import java.net.URL
 
+/**
+ * Adapter chargé de gérer la liste d'images à afficher
+ *
+ * @author Marengo Stéphane, Friedli Jonathan, Silvestri Géraud
+ */
 class ImageViewAdapter(
     private val items: List<URL>,
     private val imageLoader: ImageLoader
 ) : RecyclerView.Adapter<ImageViewAdapter.ViewHolder>() {
 
+    /**
+     * Force le rechargement des images
+     */
     fun reload() {
         notifyDataSetChanged()
     }
@@ -43,10 +51,16 @@ class ImageViewAdapter(
         private val progressBar by lazy { view.findViewById<ProgressBar>(R.id.progress_bar) }
         private var job: Job? = null
 
+        /**
+         * Charge l'image de manière asynchrone à partir de l'URL donnée.
+         */
         fun bind(imageUrl: URL) {
             job = imageLoader.load(imageUrl, ::showImage)
         }
 
+        /**
+         * Réaffiche le spinner de progression et annule l'éventuel chargement d'image en cours.
+         */
         fun unbind() {
             imageView.setImageBitmap(null)
             imageView.visibility = View.GONE
@@ -54,6 +68,9 @@ class ImageViewAdapter(
             job?.cancel()
         }
 
+        /**
+         * Affiche l'image donnée dans l'ImageView.
+         */
         private fun showImage(bitmap: Bitmap) {
             imageView.setImageBitmap(bitmap)
             imageView.visibility = View.VISIBLE

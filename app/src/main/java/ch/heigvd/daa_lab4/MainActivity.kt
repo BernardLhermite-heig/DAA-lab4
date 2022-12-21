@@ -10,11 +10,16 @@ import androidx.recyclerview.widget.RecyclerView
 import java.net.URL
 import java.time.Duration
 
+/**
+ * Activité principale de l'application permettant d'afficher la galerie d'images.
+ *
+ * @author Marengo Stéphane, Friedli Jonathan, Silvestri Géraud
+ */
 class MainActivity : AppCompatActivity() {
     companion object {
         const val NB_COLUMNS = 3
         const val IMAGE_URL = "https://daa.iict.ch/images/%d.jpg"
-        const val UPPER_BOUND = 10_000
+        const val NB_IMAGES = 10_000
         val CACHE_DURATION: Duration = Duration.ofMinutes(5)
         val CACHE_CLEAN_INTERVAL: Duration = Duration.ofMinutes(15)
     }
@@ -27,10 +32,10 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
 
         val imageLoader = ImageLoader(lifecycleScope, cacheManager, CACHE_DURATION)
-        val images = (1..UPPER_BOUND).map { URL(IMAGE_URL.format(it)) }
+        val images = (1..NB_IMAGES).map { URL(IMAGE_URL.format(it)) }
 
         adapter = ImageViewAdapter(images, imageLoader)
-        
+
         val recyclerView = findViewById<RecyclerView>(R.id.image_list)
         recyclerView.adapter = adapter
         recyclerView.layoutManager = GridLayoutManager(this, NB_COLUMNS)
