@@ -20,6 +20,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private val cacheManager by lazy { CacheManager(cacheDir) }
+    private lateinit var adapter: ImageViewAdapter
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -28,8 +29,10 @@ class MainActivity : AppCompatActivity() {
         val imageLoader = ImageLoader(lifecycleScope, cacheManager, CACHE_DURATION)
         val images = (1..UPPER_BOUND).map { URL(IMAGE_URL.format(it)) }
 
+        adapter = ImageViewAdapter(images, imageLoader)
+        
         val recyclerView = findViewById<RecyclerView>(R.id.image_list)
-        recyclerView.adapter = ImageViewAdapter(images, imageLoader)
+        recyclerView.adapter = adapter
         recyclerView.layoutManager = GridLayoutManager(this, NB_COLUMNS)
 
         cacheManager.registerPeriodicCleanup(CACHE_CLEAN_INTERVAL, this)
@@ -44,6 +47,7 @@ class MainActivity : AppCompatActivity() {
         return when (item.itemId) {
             R.id.main_menu_cleanup_button -> {
                 cacheManager.cleanup(this)
+                adapter.reload()
                 true
             }
             else -> super.onOptionsItemSelected(item)

@@ -15,6 +15,10 @@ class ImageViewAdapter(
     private val imageLoader: ImageLoader
 ) : RecyclerView.Adapter<ImageViewAdapter.ViewHolder>() {
 
+    fun reload() {
+        notifyDataSetChanged()
+    }
+
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
         val layout = R.layout.image_grid_item
         return ViewHolder(
