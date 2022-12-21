@@ -68,9 +68,10 @@ class CacheManager(private val directory: File) {
      */
     fun cleanup(context: Context) {
         val workManager = WorkManager.getInstance(context)
+        val tag = ONE_TIME_TAG + directory.name
 
         val workRequest = OneTimeWorkRequestBuilder<DirectoryCleanerWorker>()
-            .addTag(ONE_TIME_TAG)
+            .addTag(tag)
             .setInputData(DirectoryCleanerWorker.createInputData(directory))
             .build()
 
