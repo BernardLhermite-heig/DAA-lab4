@@ -39,14 +39,10 @@ class DirectoryCleanerWorker(context: Context, params: WorkerParameters) :
         val pathStr = inputData.getString(DIRECTORY_KEY)
         val directory = pathStr?.let { File(it) }
 
-        if (directory == null || !directory.isDirectory) {
+        if (directory == null || !directory.isDirectory || !directory.canWrite()) {
             return Result.failure()
         }
-
-        if (!directory.canWrite()) {
-            return Result.failure()
-        }
-
+        
         val result = directory.listFiles()?.fold(true) { result, file ->
             result && file.deleteRecursively()
         }
